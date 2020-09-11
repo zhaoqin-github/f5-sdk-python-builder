@@ -10,9 +10,9 @@ python:
 
 env:
   global:
+    - GITHUB_REPO=zhaoqin-github/f5-sdk-python-builder
     - F5SDK_REPO="f5devcentral/f5-sdk-python"
     - PKG_NAME="f5-sdk-python"
-    - PKG_VERSION=$(python -c "from f5sdk import constants ; print constants.VERSION")
     - BUILD_NUMBER=1
     - DIST_REPO="dist"
     - BUILD_CONTAINER="f5-sdk-python-builder"
@@ -24,6 +24,7 @@ script:
   - tar -zxf f5sdk.tar.gz
   - F5SDK_DIR=$(ls -d f5devcentral-f5-sdk-python-*)
   - BUILD_DIR="/build/$F5SDK_DIR"
+  - pushd $F5SDK_DIR ; PKG_VERSION=$(python -c "from f5sdk import constants ; print constants.VERSION") ; popd
   - docker run --privileged --rm -v $(pwd):/build ${BUILD_CONTAINER} /bin/bash -e /build/build.sh -d ${BUILD_DIR} -n ${BUILD_NUMBER}
 
 before_deploy:
