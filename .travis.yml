@@ -16,11 +16,14 @@ env:
     - BUILD_NUMBER=1
     - DIST_REPO="dist"
     - BUILD_CONTAINER="f5-sdk-python-builder"
-    - BUILD_DIR="/build/f5-sdk-python"
 
 script:
   - docker build -t ${BUILD_CONTAINER} .
-  - git clone git@github.com:"$F5SDK_REPO".git
+  - TAR_URL=$(curl -s -X GET https://api.github.com/repos/f5devcentral/f5-sdk-python/releases | jq -r .[0].tarball_url)
+  - wget $TAR_URL -O f5sdk.tar.gz
+  - tar -zxf f5sdk.tar.gz
+  - F5SDK_DIR=$(ls -d f5devcentral-f5-sdk-python-*)
+  - BUILD_DIR="/build/$F5SDK_DIR"
   - docker run --privileged --rm -v $(pwd):/build ${BUILD_CONTAINER} /bin/bash -e /build/build.sh -d ${BUILD_DIR} -n ${BUILD_NUMBER}
 
 before_deploy:
@@ -35,7 +38,7 @@ deploy:
     edge: true
     api_key: ${GITHUB_TOKEN}
     file:
-      - f5-sdk-python/${DIST_REPO}/${PKG_NAME}-${PKG_VERSION}-${BUILD_NUMBER}.noarch.rpm
+      - ${F5SDK_DIR}/${DIST_REPO}/${PKG_NAME}-${PKG_VERSION}-${BUILD_NUMBER}.noarch.rpm
     skip_cleanup: true
     draft: true
     name: "Travis-${TRAVIS_BUILD_ID}"
