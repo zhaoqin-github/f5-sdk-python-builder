@@ -1,0 +1,44 @@
+sudo: required
+  
+services:
+  - docker
+
+language: python
+
+python:
+  - '2.7'
+
+env:
+  global:
+    - F5SDK_REPO="f5devcentral/f5-sdk-python"
+    - PKG_NAME="f5-sdk-python"
+    - PKG_VERSION=$(python -c "from f5sdk import constants ; print constants.VERSION")
+    - BUILD_NUMBER=1
+    - DIST_REPO="dist"
+    - BUILD_CONTAINER="f5-sdk-python-builder"
+    - BUILD_DIR="/build/f5-sdk-python"
+
+script:
+  - docker build -t ${BUILD_CONTAINER} .
+  - git clone git@github.com:"$F5SDK_REPO".git
+  - docker run --privileged --rm -v $(pwd):/build ${BUILD_CONTAINER} /bin/bash -e /build/build.sh -d ${BUILD_DIR} -n ${BUILD_NUMBER}
+
+before_deploy:
+  # Set a local tag to deploy dev build
+  - git config --local user.name "Qin Zhao"
+  - git config --local user.email "q.zhao@f5.com"
+  - TAG="travis-${TRAVIS_BUILD_ID}"
+  - git tag ${TAG}
+
+deploy:
+  - provider: releases
+    edge: true
+    api_key: ${GITHUB_TOKEN}
+    file:
+      - f5-sdk-python/${DIST_REPO}/${PKG_NAME}-${PKG_VERSION}-${BUILD_NUMBER}.noarch.rpm
+    skip_cleanup: true
+    draft: true
+    name: "Travis-${TRAVIS_BUILD_ID}"
+    release_notes: "[Travis CI build ${TRAVIS_BUILD_ID}](https://travis-ci.com/github/${GITHUB_REPO}/builds/${TRAVIS_BUILD_ID})"
+    on:
+      repo: ${GITHUB_REPO}
